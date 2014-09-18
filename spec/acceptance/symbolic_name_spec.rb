@@ -1,9 +1,10 @@
-require 'spec_helper_system'
+require 'spec_helper_acceptance'
 
 describe 'symbolic name' do
-  pp="
+  basedir = default.tmpdir('concat')
+  pp = <<-EOS
     concat { 'not_abs_path':
-      path => '/tmp/file',
+      path => '#{basedir}/file',
     }
 
     concat::fragment { '1':
@@ -17,17 +18,14 @@ describe 'symbolic name' do
       content => '2',
       order   => '02',
     }
-  "
+  EOS
 
-  context puppet_apply(pp) do
-    its(:stderr) { should be_empty }
-    its(:exit_code) { should_not == 1 }
-    its(:refresh) { should be_nil }
-    its(:stderr) { should be_empty }
-    its(:exit_code) { should be_zero }
+  it 'applies the manifest twice with no stderr' do
+    apply_manifest(pp, :catch_failures => true)
+    apply_manifest(pp, :catch_changes => true)
   end
 
-  describe file('/tmp/file') do
+  describe file("#{basedir}/file") do
     it { should be_file }
     it { should contain '1' }
     it { should contain '2' }
